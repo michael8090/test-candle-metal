@@ -154,7 +154,7 @@ fn running() -> Result<()> {
 
     const BATCH_SIZE: usize = 1;
 
-    let length = 16 * BATCH_SIZE;
+    let length = 4 * BATCH_SIZE;
     let count = length / BATCH_SIZE;
     let data = (0usize..length).map(|v| v as f32).collect::<Vec<f32>>();
 
@@ -162,29 +162,30 @@ fn running() -> Result<()> {
         .reshape(&[count, BATCH_SIZE, DATA_SIZE])?;
 
     let mut epoch = 0;
-    loop {
-        for i in 0..count {
-            let x = &x_dataset.get(i).unwrap();
-            let p_x = &encode_position(x, &device);
-            let pred = bot.predictor.layout(p_x).unwrap();
-            let y = ((x * 0.05)?.sin()?*10000.0).unwrap();
+    // loop {
+    for i in 0..count {
+        let x = &x_dataset.get(i).unwrap();
+        let p_x = &encode_position(x, &device);
+        let pred = bot.predictor.layout(p_x).unwrap();
+        let y = ((x * 0.05)?.sin()?*10000.0).unwrap();
 
-            // ISSUE HERE: MSE is not right on metal backend
-            let pred_loss = nn::loss::mse(&pred, &y).unwrap();
+        // ISSUE HERE: MSE is not right on metal backend
+        let pred_loss = nn::loss::mse(&pred, &y).unwrap();
 
-            println!("===== pred_loss: {}", pred_loss);
+        println!("===== pred_loss: {}", pred_loss);
 
-            bot.opt.backward_step(&pred_loss).unwrap();
+        bot.opt.backward_step(&pred_loss).unwrap();
 
-            println!("step: {}    pred_loss: {}", epoch * count + i, pred_loss.to_scalar::<f32>().unwrap());
-            println!(
-                "pred:\n{}\n y:\n{} \n\n",
-                pred.flatten_all()?,
-                y.flatten_all()?,
-            );
-        }
-        epoch += 1;
+        println!("step: {}    pred_loss: {}", epoch * count + i, pred_loss.to_scalar::<f32>().unwrap());
+        println!(
+            "pred:\n{}\n y:\n{} \n\n",
+            pred.flatten_all()?,
+            y.flatten_all()?,
+        );
     }
+    epoch += 1;
+    // }
+    Ok(())
 }
 
 fn main() {
